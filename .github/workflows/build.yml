@@ -23,9 +23,13 @@ jobs:
       with:
         packages: 'platforms;android-30 build-tools;30.0.3'
 
+    - name: Generate Gradle Wrapper
+      run: |
+        gradle wrapper
+        chmod +x gradlew
+
     - name: Build APK
       run: |
-        chmod +x gradlew
         ./gradlew assembleDebug
 
     - name: Upload APK
