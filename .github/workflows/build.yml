@@ -14,7 +14,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Java 17 untuk Android SDK / sdkmanager
       - name: Setup Java 17
         uses: actions/setup-java@v5
         with:
@@ -35,7 +34,16 @@ jobs:
           sdkmanager "platforms;android-30"
           sdkmanager "build-tools;30.0.3"
 
-      # Setelah SDK selesai, project lama menggunakan Java 8
+      - name: Extract Android Project
+        run: |
+          mkdir -p project
+          unzip -q "Black Phoenix v1.zip" -d project
+
+      - name: Show Extracted Project
+        run: |
+          echo "=== PROJECT ==="
+          find project -maxdepth 2 -type f | sort
+
       - name: Setup Java 8 for Gradle
         uses: actions/setup-java@v5
         with:
@@ -47,12 +55,8 @@ jobs:
         with:
           gradle-version: '5.4.1'
 
-      - name: Check Java and Gradle
-        run: |
-          java -version
-          gradle --version
-
-      - name: Show Project Structure
+      - name: Check Project
+        working-directory: project
         run: |
           echo "=== ROOT ==="
           ls -la
@@ -61,12 +65,13 @@ jobs:
           echo "=== GRADLE WRAPPER ==="
           ls -la gradle/wrapper
 
-      - name: Build Debug APK
-        run: gradle assembleDebug --stacktrace
+      - name: Build Release APK
+        working-directory: project
+        run: gradle assembleRelease --stacktrace
 
-      - name: Upload APK
+      - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: Black-Phoenix-debug
-          path: app/build/outputs/apk/debug/*.apk
+          name: Black-Phoenix-release
+          path: project/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
