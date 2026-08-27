@@ -20,14 +20,25 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Check project
+        run: |
+          echo "Current directory:"
+          pwd
+          echo "Repository contents:"
+          ls -la
+          echo "Project contents:"
+          ls -la "Omni core v1"
+
       - name: Make Gradle executable
+        working-directory: "Omni core v1"
         run: chmod +x gradlew
 
       - name: Build Debug APK
+        working-directory: "Omni core v1"
         run: ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Omni-core-debug
-          path: app/build/outputs/apk/debug/*.apk
+          path: "Omni core v1/app/build/outputs/apk/debug/*.apk"
