@@ -20,25 +20,50 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Check project
+      - name: Extract project
         run: |
-          echo "Current directory:"
-          pwd
-          echo "Repository contents:"
-          ls -la
-          echo "Project contents:"
-          ls -la "Omni core v1"
+          unzip -o "Black Phoenix v1.zip" -d extracted
+
+          echo "=== Extracted files ==="
+          find extracted -maxdepth 4 -type f | head -100
+
+      - name: Find Gradle project
+        run: |
+          GRADLEW=$(find extracted -type f -name gradlew | head -n 1)
+
+          if [ -z "$GRADLEW" ]; then
+            echo "ERROR: gradlew tidak ditemukan!"
+            echo "Isi hasil ekstraksi:"
+            find extracted -maxdepth 5 -print
+            exit 1
+          fi
+
+          PROJECT_DIR=$(dirname "$GRADLEW")
+
+          echo "Gradle wrapper ditemukan:"
+          echo "$GRADLEW"
+
+          echo "Project directory:"
+          echo "$PROJECT_DIR"
+
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
       - name: Make Gradle executable
-        working-directory: "Omni core v1"
-        run: chmod +x gradlew
+        run: chmod +x "$PROJECT_DIR/gradlew"
 
       - name: Build Debug APK
-        working-directory: "Omni core v1"
-        run: ./gradlew assembleDebug --no-daemon
+        run: |
+          cd "$PROJECT_DIR"
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Find APK
+        run: |
+          echo "=== APK hasil build ==="
+          find "$PROJECT_DIR" -type f -name "*.apk" -print
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Omni-core-debug
-          path: "Omni core v1/app/build/outputs/apk/debug/*.apk"
+          name: Black-Phoenix-debug
+          path: "**/build/outputs/apk/debug/*.apk"
+          if-no-files-found: error
