@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Java 17
@@ -23,57 +23,30 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install Android SDK packages
+      - name: Install Android SDK
         run: |
+          yes | sdkmanager --licenses || true
           sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.0"
 
-      - name: Check repository
-        run: |
-          echo "=== Repository ==="
-          pwd
-          ls -lah
-          echo "=== ZIP ==="
-          unzip -l "Black Phoenix v1.zip" | head -80
-
-      - name: Extract project
+      - name: Extract APK project
         run: |
           rm -rf extracted
-          mkdir -p extracted
-          unzip -o "Black Phoenix v1.zip" -d extracted
+          mkdir extracted
 
-          echo "=== Extracted ==="
-          find extracted -maxdepth 3 -type f | head -100
+          unzip -q "Black Phoenix v1.zip" -d extracted
 
-      - name: Find Android project
+          echo "=== PROJECT STRUCTURE ==="
+          find extracted -maxdepth 3 -type f \
+            \( -name "build.gradle" -o \
+               -name "build.gradle.kts" -o \
+               -name "settings.gradle" -o \
+               -name "settings.gradle.kts" \) \
+            -print
+
+      - name: Clean old build files
         run: |
-          echo "Searching for Gradle project..."
-
-          find extracted -type f \( \
-            -name "settings.gradle" -o \
-            -name "settings.gradle.kts" -o \
-            -name "build.gradle" -o \
-            -name "build.gradle.kts" \
-          \) -print
-
-      - name: Prepare Gradle
-        run: |
-          PROJECT_DIR="extracted/app"
-
-          if [ ! -f "$PROJECT_DIR/build.gradle" ] && [ ! -f "$PROJECT_DIR/build.gradle.kts" ]; then
-            echo "ERROR: Android project not found in $PROJECT_DIR"
-            exit 1
-          fi
-
-          echo "Project directory:"
-          pwd
-          echo "$PROJECT_DIR"
-
-          ls -lah "$PROJECT_DIR"
-
-          # Buat Gradle wrapper modern jika project lama tidak kompatibel
-          if [ -f "$PROJECT_DIR/gradlew" ]; then
-            chmod +x "$PROJECT_DIR/gradlew"
-          fi
+          rm -rf extracted/app/build
+          rm -rf extracted/app/.gradle
 
       - name: Install Gradle 7.5
         run: |
@@ -81,23 +54,30 @@ jobs:
           unzip -q gradle-7.5-bin.zip
           echo "$PWD/gradle-7.5/bin" >> "$GITHUB_PATH"
 
-      - name: Check Gradle
-        working-directory: extracted/app
+      - name: Check environment
         run: |
-          gradle --version
           java -version
+          gradle --version
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls -lah "$ANDROID_HOME/platforms"
+          ls -lah "$ANDROID_HOME/build-tools"
 
-      - name: Build Debug APK
+      - name: Build APK
         working-directory: extracted/app
         run: |
-          gradle clean assembleDebug --no-daemon --stacktrace
+          gradle clean assembleDebug \
+            --no-daemon \
+            --stacktrace \
+            --warning-mode all
 
       - name: Find APK
+        if: success()
         run: |
-          echo "=== APK FILES ==="
+          echo "=== APK ==="
           find extracted/app -type f -name "*.apk" -print
 
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: Black-Phoenix-debug
