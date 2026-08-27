@@ -22,6 +22,11 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: '11076708'
+
+      - name: Accept Android Licenses
+        run: yes | sdkmanager --licenses || true
 
       - name: Install Android SDK
         run: |
@@ -29,7 +34,7 @@ jobs:
           sdkmanager "platforms;android-30"
           sdkmanager "build-tools;30.0.3"
 
-      - name: Setup Gradle 5.4.1
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '5.4.1'
@@ -40,7 +45,7 @@ jobs:
           ls -la
           echo "=== APP ==="
           ls -la app
-          echo "=== GRADLE WRAPPER ==="
+          echo "=== WRAPPER ==="
           ls -la gradle/wrapper
 
       - name: Build Debug APK
