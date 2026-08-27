@@ -10,51 +10,54 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Setup Java 17
-      uses: actions/setup-java@v5
-      with:
-        distribution: 'temurin'
-        java-version: '17'
+      - name: Setup Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '17'
 
-    - name: Install Android SDK manually
-      run: |
-        mkdir -p $HOME/android-sdk/cmdline-tools
-        cd $HOME/android-sdk/cmdline-tools
-        wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-        unzip -q commandlinetools-linux-9477386_latest.zip
-        mv cmdline-tools latest
-        rm commandlinetools-linux-9477386_latest.zip
-        export ANDROID_SDK_ROOT=$HOME/android-sdk
-        export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin
-        yes | sdkmanager --licenses > /dev/null 2>&1
-        sdkmanager "platform-tools" "platforms;android-30" "build-tools;30.0.3"
-      env:
-        JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-1/x64
+      # 👇 GUNAKAN ACTION RESMI LEBIH AMAN DARI DOWNLOAD MANUAL
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 30
+          build-tools: '30.0.3'
+          cmdline-tools: 'latest'
+        env:
+          # Hindari cek versi JDK yang bikin error
+          SKIP_JDK_VERSION_CHECK: 'true'
 
-    - name: Extract source code
-      run: |
-        mkdir -p project
-        unzip -o "Black Phoenix v1.zip" -d project
-        ls -la project
+      # ✅ Cek dulu apakah file zip ada
+      - name: Check source zip exists
+        id: check_zip
+        run: |
+          if [ ! -f "Black Phoenix v1.zip" ]; then
+            echo "❌ FILE TIDAK DITEMUKAN: Black Phoenix v1.zip"
+            echo "Pastikan file ini sudah di-upload ke repo!"
+            exit 1
+          fi
 
-    - name: Make gradlew executable
-      run: |
-        chmod +x project/gradlew
-        cd project && ./gradlew -v
+      - name: Extract source code
+        run: |
+          mkdir -p project
+          unzip -o "Black Phoenix v1.zip" -d project
+          ls -la project
 
-    - name: Build APK
-      working-directory: project
-      run: |
-        export ANDROID_SDK_ROOT=$HOME/android-sdk
-        export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin
-        ./gradlew assembleDebug --stacktrace
+      - name: Make gradlew executable
+        run: |
+          chmod +x project/gradlew
+          cd project && ./gradlew -v
 
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: app-debug
-        path: project/app/build/outputs/apk/debug/*.apk
-        if-no-files-found: error
+      - name: Build APK
+        working-directory: project
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: project/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
