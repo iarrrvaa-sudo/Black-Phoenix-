@@ -35,18 +35,30 @@ jobs:
 
           if [ -z "$GRADLEW" ]; then
             echo "gradlew tidak ditemukan."
-            find project -maxdepth 4 -type f | sort
+            find project -maxdepth 5 -type f | sort
             exit 1
           fi
 
           PROJECT_DIR=$(dirname "$GRADLEW")
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
-          echo "Gradle project ditemukan di:"
-          echo "$PROJECT_DIR"
+          echo "Gradle project: $PROJECT_DIR"
+
+      - name: Update Gradle Wrapper
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          sed -i 's#gradle-[0-9.]*-\(all\|bin\).zip#gradle-6.7.1-all.zip#' \
+            gradle/wrapper/gradle-wrapper.properties
+
+          echo "Gradle wrapper configuration:"
+          cat gradle/wrapper/gradle-wrapper.properties
 
       - name: Make Gradle executable
         run: chmod +x "$PROJECT_DIR/gradlew"
+
+      - name: Verify Gradle
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: ./gradlew --version
 
       - name: Build Debug APK
         working-directory: ${{ env.PROJECT_DIR }}
@@ -55,7 +67,10 @@ jobs:
       - name: Find APK
         run: |
           echo "APK hasil build:"
-          find "$PROJECT_DIR/app/build/outputs/apk" -type f -name "*.apk" -print
+          find "$PROJECT_DIR/app/build/outputs/apk" \
+            -type f \
+            -name "*.apk" \
+            -print
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
