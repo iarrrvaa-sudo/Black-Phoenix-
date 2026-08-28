@@ -42,7 +42,8 @@ jobs:
           PROJECT_DIR=$(dirname "$GRADLEW")
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
-          echo "Gradle project: $PROJECT_DIR"
+          echo "Gradle project ditemukan:"
+          echo "$PROJECT_DIR"
 
       - name: Enable AndroidX
         working-directory: ${{ env.PROJECT_DIR }}
@@ -61,14 +62,28 @@ jobs:
             echo "android.enableJetifier=true" >> gradle.properties
           fi
 
-          echo "gradle.properties:"
-          cat gradle.properties
-
       - name: Update Gradle Wrapper
         working-directory: ${{ env.PROJECT_DIR }}
         run: |
           sed -i 's#gradle-[0-9.]*-\(all\|bin\).zip#gradle-6.7.1-all.zip#' \
             gradle/wrapper/gradle-wrapper.properties
+
+      - name: Download Orbitron Font
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          mkdir -p app/src/main/res/font
+
+          curl -L \
+            "https://github.com/google/fonts/raw/main/ofl/orbitron/static/Orbitron-Bold.ttf" \
+            -o app/src/main/res/font/orbitron_bold.ttf
+
+          if [ ! -s app/src/main/res/font/orbitron_bold.ttf ]; then
+            echo "Font Orbitron gagal diunduh."
+            exit 1
+          fi
+
+          file app/src/main/res/font/orbitron_bold.ttf
+          ls -lh app/src/main/res/font/orbitron_bold.ttf
 
       - name: Make Gradle executable
         run: chmod +x "$PROJECT_DIR/gradlew"
