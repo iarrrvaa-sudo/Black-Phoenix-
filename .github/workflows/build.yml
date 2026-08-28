@@ -44,14 +44,31 @@ jobs:
 
           echo "Gradle project: $PROJECT_DIR"
 
+      - name: Enable AndroidX
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          touch gradle.properties
+
+          if grep -q "^android.useAndroidX=" gradle.properties; then
+            sed -i 's/^android.useAndroidX=.*/android.useAndroidX=true/' gradle.properties
+          else
+            echo "android.useAndroidX=true" >> gradle.properties
+          fi
+
+          if grep -q "^android.enableJetifier=" gradle.properties; then
+            sed -i 's/^android.enableJetifier=.*/android.enableJetifier=true/' gradle.properties
+          else
+            echo "android.enableJetifier=true" >> gradle.properties
+          fi
+
+          echo "gradle.properties:"
+          cat gradle.properties
+
       - name: Update Gradle Wrapper
         working-directory: ${{ env.PROJECT_DIR }}
         run: |
           sed -i 's#gradle-[0-9.]*-\(all\|bin\).zip#gradle-6.7.1-all.zip#' \
             gradle/wrapper/gradle-wrapper.properties
-
-          echo "Gradle wrapper configuration:"
-          cat gradle/wrapper/gradle-wrapper.properties
 
       - name: Make Gradle executable
         run: chmod +x "$PROJECT_DIR/gradlew"
@@ -66,7 +83,6 @@ jobs:
 
       - name: Find APK
         run: |
-          echo "APK hasil build:"
           find "$PROJECT_DIR/app/build/outputs/apk" \
             -type f \
             -name "*.apk" \
