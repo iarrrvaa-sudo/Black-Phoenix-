@@ -18,24 +18,48 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 11
+      - name: Setup JDK 11
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '11'
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+      - name: Extract ZIP
+        run: |
+          mkdir -p project
+          unzip -o ./*.zip -d project
 
-      - name: Grant execute permission
-        run: chmod +x ./gradlew
+      - name: Locate Gradle project
+        run: |
+          GRADLEW=$(find project -type f -name gradlew | head -n 1)
 
-      - name: Build APK
+          if [ -z "$GRADLEW" ]; then
+            echo "gradlew tidak ditemukan."
+            find project -maxdepth 4 -type f | sort
+            exit 1
+          fi
+
+          PROJECT_DIR=$(dirname "$GRADLEW")
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+
+          echo "Gradle project ditemukan di:"
+          echo "$PROJECT_DIR"
+
+      - name: Make Gradle executable
+        run: chmod +x "$PROJECT_DIR/gradlew"
+
+      - name: Build Debug APK
+        working-directory: ${{ env.PROJECT_DIR }}
         run: ./gradlew assembleDebug --stacktrace
+
+      - name: Find APK
+        run: |
+          echo "APK hasil build:"
+          find "$PROJECT_DIR/app/build/outputs/apk" -type f -name "*.apk" -print
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: black-phoenix-v2-debug
-          path: app/build/outputs/apk/debug/*.apk
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
